@@ -363,7 +363,7 @@ class tvshows:
             'release_date': ',date[0]',
             'language': 'en',
          }
-        for i in genres:
+        for i in certificates:
             imdb_params = dict(params.items() + [('certificates', 'us:'+i)])
             # Convert the dictionary to url parameters, then URL encode
             params_str = self.imdblists.params_encode(imdb_params)
