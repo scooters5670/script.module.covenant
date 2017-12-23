@@ -47,7 +47,7 @@ class navigator:
             self.addDirectoryItem(32004, 'mytvNavigator', 'mytvshows.png', 'DefaultVideoPlaylists.png')
 
         if not control.setting('movie.widget') == '0':
-            self.addDirectoryItem(32005, 'movieWidget', 'latest-movies.png', 'DefaultRecentlyAddedMovies.png')
+            self.addDirectoryItem(32005, 'movies&url=q%3DimdbList%26listType%3Dfeatured', 'latest-movies.png', 'DefaultRecentlyAddedMovies.png')
 
         if (traktIndicators == True and not control.setting('tv.widget.alt') == '0') or (traktIndicators == False and not control.setting('tv.widget') == '0'):
             self.addDirectoryItem(32006, 'tvWidget', 'latest-episodes.png', 'DefaultRecentlyAddedEpisodes.png')
@@ -68,8 +68,6 @@ class navigator:
     def movies(self, lite=False):
         self.addDirectoryItem(32011, 'movieGenres', 'genres.png', 'DefaultMovies.png')
         self.addDirectoryItem(32012, 'movieYears', 'years.png', 'DefaultMovies.png')
-        self.addDirectoryItem(32013, 'moviePersons', 'people.png', 'DefaultMovies.png')
-        self.addDirectoryItem(32014, 'movieLanguages', 'languages.png', 'DefaultMovies.png')
         self.addDirectoryItem(32015, 'movieCertificates', 'certificates.png', 'DefaultMovies.png')
         self.addDirectoryItem(32017, 'movies&url=q%3DimdbList%26listType%3Dtrending', 'people-watching.png', 'DefaultRecentlyAddedMovies.png')
         self.addDirectoryItem(32018, 'movies&url=q%3DimdbList%26listType%3Dpopular', 'most-popular.png', 'DefaultMovies.png')
@@ -77,7 +75,7 @@ class navigator:
         self.addDirectoryItem(32020, 'movies&url=q%3DimdbList%26listType%3Dboxoffice', 'box-office.png', 'DefaultMovies.png')
         self.addDirectoryItem(32021, 'movies&url=q%3DimdbList%26listType%3Doscars', 'oscar-winners.png', 'DefaultMovies.png')
         self.addDirectoryItem(32022, 'movies&url=q%3DimdbList%26listType%3Dtheater', 'in-theaters.png', 'DefaultRecentlyAddedMovies.png')
-        self.addDirectoryItem(32005, 'movieWidget', 'latest-movies.png', 'DefaultRecentlyAddedMovies.png')
+        self.addDirectoryItem(32005, 'movies&url=q%3DimdbList%26listType%3Dfeatured', 'latest-movies.png', 'DefaultRecentlyAddedMovies.png')
 
         if lite == False:
             if not control.setting('lists.widget') == '0':
@@ -127,12 +125,11 @@ class navigator:
     def tvshows(self, lite=False):
         self.addDirectoryItem(32011, 'tvGenres', 'genres.png', 'DefaultTVShows.png')
         self.addDirectoryItem(32016, 'tvNetworks', 'networks.png', 'DefaultTVShows.png')
-        self.addDirectoryItem(32014, 'tvLanguages', 'languages.png', 'DefaultTVShows.png')
         self.addDirectoryItem(32015, 'tvCertificates', 'certificates.png', 'DefaultTVShows.png')
         self.addDirectoryItem(32017, 'tvshows&url=q%3DimdbList%26listType%3Dtrendingtv', 'people-watching.png', 'DefaultRecentlyAddedEpisodes.png')
         self.addDirectoryItem(32018, 'tvshows&url=q%3DimdbList%26listType%3Dpopulartv', 'most-popular.png', 'DefaultTVShows.png')
         self.addDirectoryItem(32019, 'tvshows&url=q%3DimdbList%26listType%3Dratingtv', 'highly-rated.png', 'DefaultTVShows.png')
-        self.addDirectoryItem(32021, 'tvshows&url=q%3DimdbList%26listType%3Dairingtv', 'airing-today.png', 'DefaultTVShows.png')
+        self.addDirectoryItem(32024, 'tvshows&url=q%3DimdbList%26listType%3Dairingtv', 'airing-today.png', 'DefaultTVShows.png')
         self.addDirectoryItem(32026, 'tvshows&url=q%3DimdbList%26listType%3Dpremiertv', 'new-tvshows.png', 'DefaultTVShows.png')
         self.addDirectoryItem(32006, 'calendar&url=added', 'latest-episodes.png', 'DefaultRecentlyAddedEpisodes.png', queue=True)
         self.addDirectoryItem(32027, 'calendars', 'calendar.png', 'DefaultRecentlyAddedEpisodes.png')

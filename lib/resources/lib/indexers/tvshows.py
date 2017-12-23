@@ -72,15 +72,6 @@ class tvshows:
         self.tvdb_by_query = 'http://thetvdb.com/api/GetSeries.php?seriesname=%s'
         self.tvdb_image = 'http://thetvdb.com/banners/'
 
-        self.persons_link = 'http://www.imdb.com/search/name?count=100&name='
-        self.personlist_link = 'http://www.imdb.com/search/name?count=100&gender=male,female'
-        self.active_link = 'http://www.imdb.com/search/title?&num_votes=10,&production_status=active&sort=moviemeter,asc&count=40&start=1'
-        self.person_link = 'http://www.imdb.com/search/title?&release_date=,date[0]&role=%s&sort=year,desc&count=40&start=1'
-        #self.genre_link = 'http://www.imdb.com/search/title?&release_date=,date[0]&genres=%s&sort=moviemeter,asc&count=40&start=1'
-        self.genre_link = 'http://www.imdb.com/search/title?genres=%s&sort=user_rating,desc&title_type=tv_series,mini_series&num_votes=200,&start=1'
-        self.keyword_link = 'http://www.imdb.com/search/title?&release_date=,date[0]&keywords=%s&sort=moviemeter,asc&count=40&start=1'
-        self.language_link = 'http://www.imdb.com/search/title?&num_votes=100,&production_status=released&primary_language=%s&sort=moviemeter,asc&count=40&start=1'
-        self.certification_link = 'http://www.imdb.com/search/title?&release_date=,date[0]&certificates=us:%s&sort=moviemeter,asc&count=40&start=1'
 
         self.trending_link = 'http://api.trakt.tv/shows/trending?limit=40&page=1'
         self.traktlists_link = 'http://api.trakt.tv/users/me/lists'
@@ -116,7 +107,7 @@ class tvshows:
 
         # New parsing logic for imdb
         if 'imdb' in url:
-            if self.params['q'] == 'imdbUserList':
+            if self.params.get('q') == 'imdbUserList':
                 if 'listId' in self.params.keys():
                     list_id = self.params['listId']
                     self.list = cache.get(self.imdblists.get_user_list_contents,
@@ -124,12 +115,15 @@ class tvshows:
                 else:
                     self.list = cache.get(self.imdblists.get_user_lists,
                                             IMDB_USER_LIST_CACHE_TIMEOUT)
-
-            elif self.params['q'] == 'imdbList':
+            elif self.params.get('q') == 'imdbList':
                 # Default to "featured" if listType isnt defined
                 list_type = self.params['listType']
                 self.list = cache.get(self.imdblists.get_imdb_list_contents,
                                     IMDB_LIST_CACHE_TIMEOUT_LONG, list_type)
+            elif self.params.get('q') == 'imdb_params':
+                imdb_url = self.imdblists.build_imdb_search_url(self.params)
+                self.list = cache.get(self.imdblists.get_imdb_url_contents,
+                                    IMDB_LIST_CACHE_TIMEOUT_LONG, imdb_url)
             # Support for legacy imdb
             else:
                 decoded_url = urllib.unquote(url).decode('utf8')
@@ -238,22 +232,6 @@ class tvshows:
             url = '%s?action=tvshowPage&url=%s' % (sys.argv[0], urllib.quote_plus(url))
             control.execute('Container.Update(%s)' % url)
 
-    def person(self):
-        try:
-            control.idle()
-
-            t = control.lang(32010).encode('utf-8')
-            k = control.keyboard('', t) ; k.doModal()
-            q = k.getText() if k.isConfirmed() else None
-
-            if (q == None or q == ''): return
-
-            url = self.persons_link + urllib.quote_plus(q)
-            url = '%s?action=tvPersons&url=%s' % (sys.argv[0], urllib.quote_plus(url))
-            control.execute('Container.Update(%s)' % url)
-        except:
-            return
-
     def genres(self):
         genres = [
             ('Action', 'action', True),
@@ -283,10 +261,22 @@ class tvshows:
             ('Western', 'western', True)
         ]
 
-        for i in genres: self.list.append(
-            {
+        params = {
+            'title_type': 'tv_series,mini_series',
+            'num_votes': '200,',
+            'sort': 'boxoffice_gross_us,desc',
+            'release_date': ',date[0]',
+            'language': 'en',
+         }
+
+        for i in genres:
+            imdb_params = dict(params.items() + [('genres', i[1])])
+            # Convert the dictionary to url parameters, then URL encode
+            params_str = self.imdblists.params_encode(imdb_params)
+            url = 'q=imdb_params&{}'.format(params_str)
+            self.list.append({
                 'name': cleangenre.lang(i[0], self.lang),
-                'url': self.genre_link % i[1] if i[2] else self.keyword_link % i[1],
+                'url': url,
                 'image': 'genres.png',
                 'action': 'tvshows'
             })
@@ -359,68 +349,33 @@ class tvshows:
         ('WGN', '/networks/28/wgn-america', 'https://i.imgur.com/TL6MzgO.png')
         ]
 
-        for i in networks: self.list.append({'name': i[0], 'url': self.tvmaze_link + i[1], 'image': i[2], 'action': 'tvshows'})
+        for i in networks:
+            self.list.append({'name': i[0], 'url': self.tvmaze_link + i[1], 'image': i[2], 'action': 'tvshows'})
         self.addDirectory(self.list)
         return self.list
-
-
-    def languages(self):
-        languages = [
-        ('Arabic', 'ar'),
-        ('Bosnian', 'bs'),
-        ('Bulgarian', 'bg'),
-        ('Chinese', 'zh'),
-        ('Croatian', 'hr'),
-        ('Dutch', 'nl'),
-        ('English', 'en'),
-        ('Finnish', 'fi'),
-        ('French', 'fr'),
-        ('German', 'de'),
-        ('Greek', 'el'),
-        ('Hebrew', 'he'),
-        ('Hindi ', 'hi'),
-        ('Hungarian', 'hu'),
-        ('Icelandic', 'is'),
-        ('Italian', 'it'),
-        ('Japanese', 'ja'),
-        ('Korean', 'ko'),
-        ('Norwegian', 'no'),
-        ('Persian', 'fa'),
-        ('Polish', 'pl'),
-        ('Portuguese', 'pt'),
-        ('Punjabi', 'pa'),
-        ('Romanian', 'ro'),
-        ('Russian', 'ru'),
-        ('Serbian', 'sr'),
-        ('Spanish', 'es'),
-        ('Swedish', 'sv'),
-        ('Turkish', 'tr'),
-        ('Ukrainian', 'uk')
-        ]
-
-        for i in languages: self.list.append({'name': str(i[0]), 'url': self.language_link % i[1], 'image': 'languages.png', 'action': 'tvshows'})
-        self.addDirectory(self.list)
-        return self.list
-
 
     def certifications(self):
         certificates = ['TV-G', 'TV-PG', 'TV-14', 'TV-MA']
-
-        for i in certificates: self.list.append({'name': str(i), 'url': self.certification_link % str(i).replace('-', '_').lower(), 'image': 'certificates.png', 'action': 'tvshows'})
+        params = {
+            'title_type': 'tv_series,mini_series',
+            'num_votes': '100,',
+            'sort': 'moviemeter,asc',
+            'release_date': ',date[0]',
+            'language': 'en',
+         }
+        for i in genres:
+            imdb_params = dict(params.items() + [('certificates', 'us:'+i)])
+            # Convert the dictionary to url parameters, then URL encode
+            params_str = self.imdblists.params_encode(imdb_params)
+            url = 'q=imdb_params&{}'.format(params_str)
+            self.list.append({
+                'name': str(i),
+                'url': url,
+                'image': 'certificates.png',
+                'action': 'tvshows'
+            })
         self.addDirectory(self.list)
         return self.list
-
-
-    def persons(self, url):
-        if url == None:
-            self.list = cache.get(self.imdb_person_list, 24, self.personlist_link)
-        else:
-            self.list = cache.get(self.imdb_person_list, 1, url)
-
-        for i in range(0, len(self.list)): self.list[i].update({'action': 'tvshows'})
-        self.addDirectory(self.list)
-        return self.list
-
 
     def userlists(self):
         try:
@@ -581,38 +536,6 @@ class tvshows:
                 pass
 
         self.list = sorted(self.list, key=lambda k: utils.title_key(k['name']))
-        return self.list
-
-
-    def imdb_person_list(self, url):
-        try:
-            result = client.request(url)
-            items = client.parseDOM(result, 'tr', attrs = {'class': '.+? detailed'})
-        except:
-            return
-
-        for item in items:
-            try:
-                name = client.parseDOM(item, 'a', ret='title')[0]
-                name = client.replaceHTMLCodes(name)
-                name = name.encode('utf-8')
-
-                url = client.parseDOM(item, 'a', ret='href')[0]
-                url = re.findall('(nm\d*)', url, re.I)[0]
-                url = self.person_link % url
-                url = client.replaceHTMLCodes(url)
-                url = url.encode('utf-8')
-
-                image = client.parseDOM(item, 'img', ret='src')[0]
-                if not ('._SX' in image or '._SY' in image): raise Exception()
-                image = re.sub('(?:_SX|_SY|_UX|_UY|_CR|_AL)(?:\d+|_).+?\.', '_SX500.', image)
-                image = client.replaceHTMLCodes(image)
-                image = image.encode('utf-8')
-
-                self.list.append({'name': name, 'url': url, 'image': image})
-            except:
-                pass
-
         return self.list
 
     def tvmaze_list(self, url):
@@ -1091,7 +1014,7 @@ class tvshows:
                 pass
 
         # Add the next button for pagination
-        if 'q' in self.params.keys() and len(p_items) == MAX_RESULTS_LENGTH:
+        if (('q' in self.params.keys()) and len(p_items) == MAX_RESULTS_LENGTH):
             # IMDB pagination
             next_page = int(self.params.get('page', '1')) + 1
             params = self.params

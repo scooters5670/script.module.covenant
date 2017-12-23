@@ -11,7 +11,9 @@ class IMDBLists(object):
     """
     user_list_url = 'http://www.imdb.com/list/{listid}'
     users_url = 'http://www.imdb.com/user/ur{userid}/'
-    list_base_url = 'http://www.imdb.com/search/title'
+    search_url = 'http://www.imdb.com/search/title'
+    # The total number of results to fetch
+    results_count = 90
 
     def __init__(self, title_type, imdb_user=None):
         """
@@ -63,14 +65,17 @@ class IMDBLists(object):
                              self.params_encode(params))
         return url
 
-    def build_imdb_list_url(self, list_type, hidecinema=False):
+    def build_imdb_list_url(self, list_type, params_extra=None, hidecinema=False):
         """
         Build the url for fetching imdb list contents
         """
         params = {'title_type': self.title_type,
-                  'count': 130,
+                  'count': self.results_count,
                   'start': 1,
                  }
+        if params_extra is not None:
+            params = dict(params.items() + params_extra.items())
+
         if hidecinema:
             params.update('release_date',',date[90]')
         if list_type == 'popular':
@@ -124,14 +129,21 @@ class IMDBLists(object):
             log_utils.log("{} didn't match any of our options.".format(list_type))
             return []
         params_enc = self.params_encode(params)
-        url = "{}?{}".format(self.list_base_url, params_enc)
+        url = "{}?{}".format(self.search_url, params_enc)
         return url
+
+    def build_imdb_search_url(self, params, hidecinema=True):
+        """
+        Build a custom imdb search url using params
+        """
+        default_params = {'count': self.results_count, 'start': 1}
+        p = dict(default_params.items() + params.items())
+        return "{}?{}".format(self.search_url, self.params_encode(p))
 
     def get_imdb_url_contents(self, url):
         """
         Retrieve the list of shows for the given url
         """
-        log_utils.log("fetching " + url)
         if not url:
             return []
         results_list = []

@@ -59,7 +59,7 @@ class movies:
         self.today_date = (self.datetime).strftime('%Y-%m-%d')
         self.trakt_user = control.setting('trakt.user').strip()
         self.imdb_user = control.setting('imdb.user').replace('ur', '')
-        self.tm_user = control.setting('tm.user')
+        self.tm_user = '1a7373301961d03f97f853a876dd1212' #control.setting('tm.user')
         self.fanart_tv_user = control.setting('fanart.tv.user')
         self.user = str(control.setting('fanart.tv.user')) + str(control.setting('tm.user'))
         self.lang = control.apiLanguage()['trakt']
@@ -67,17 +67,10 @@ class movies:
 
         self.search_link = 'http://api.trakt.tv/search/movie?limit=20&page=1&query='
         self.fanart_tv_art_link = 'http://webservice.fanart.tv/v3/movies/%s'
-        self.fanart_tv_level_link = 'http://webservice.fanart.tv/v3/level'
         self.tm_art_link = 'http://api.themoviedb.org/3/movie/%s/images?api_key=%s&language=en-US&include_image_language=en,%s,null' % ('%s', self.tm_user, self.lang)
         self.tm_img_link = 'https://image.tmdb.org/t/p/w%s%s'
 
-        self.persons_link = 'http://www.imdb.com/search/name?count=100&name='
-        self.personlist_link = 'http://www.imdb.com/search/name?count=100&gender=male,female'
-        self.person_link = 'http://www.imdb.com/search/title?title_type=feature,tv_movie&production_status=released&role=%s&sort=year,desc&count=40&start=1'
         self.keyword_link = 'http://www.imdb.com/search/title?title_type=feature,tv_movie,documentary&num_votes=100,&release_date=,date[0]&keywords=%s&sort=moviemeter,asc&count=40&start=1'
-        self.oscars_link = 'http://www.imdb.com/search/title?title_type=feature,tv_movie&production_status=released&groups=oscar_best_picture_winners&sort=year,desc&count=40&start=1'
-        self.theaters_link = 'http://www.imdb.com/search/title?title_type=feature&num_votes=1000,&release_date=date[365],date[0]&sort=release_date_us,desc&count=40&start=1'
-        self.year_link = 'http://www.imdb.com/search/title?title_type=feature,tv_movie&num_votes=100,&production_status=released&year=%s,%s&sort=moviemeter,asc&count=40&start=1'
 
         self.added_link  = 'http://www.imdb.com/search/title?title_type=feature,tv_movie&languages=en&num_votes=500,&production_status=released&release_date=%s,%s&sort=release_date,desc&count=20&start=1' % (self.year_date, self.today_date)
         self.trending_link = 'http://api.trakt.tv/movies/trending?limit=40&page=1'
@@ -108,7 +101,6 @@ class movies:
         return params
 
     def get(self, url, idx=True, create_directory=True):
-
         # Save the current url
         self.url = url
         # Initialize the url params into a dictionary
@@ -116,7 +108,7 @@ class movies:
 
         # New parsing logic for imdb
         if 'imdb' in url:
-            if self.params['q'] == 'imdbUserList':
+            if self.params.get('q') == 'imdbUserList':
                 if 'listId' in self.params.keys():
                     list_id = self.params['listId']
                     self.list = cache.get(self.imdblists.get_user_list_contents,
@@ -125,13 +117,16 @@ class movies:
                     self.list = cache.get(self.imdblists.get_user_lists,
                                             IMDB_USER_LIST_CACHE_TIMEOUT)
 
-            elif self.params['q'] == 'imdbList':
+            elif self.params.get('q') == 'imdbList':
                 # Default to "featured" if listType isnt defined
                 list_type = self.params['listType']
                 self.list = cache.get(self.imdblists.get_imdb_list_contents,
                                     IMDB_LIST_CACHE_TIMEOUT_LONG,
                                     list_type, self.hidecinema)
-
+            elif self.params.get('q') == 'imdb_params':
+                imdb_url = self.imdblists.build_imdb_search_url(self.params)
+                self.list = cache.get(self.imdblists.get_imdb_url_contents,
+                                    IMDB_LIST_CACHE_TIMEOUT_LONG, imdb_url)
             # Support for legacy imdb
             else:
                 decoded_url = urllib.unquote(url).decode('utf8')
@@ -178,23 +173,7 @@ class movies:
             log_utils.log(sys.exc_info())
             pass
 
-
-    def widget(self):
-        setting = control.setting('movie.widget')
-
-        if setting == '2':
-            self.get('imdbList&listType=trending')
-        elif setting == '3':
-            self.get('imdbList&listType=popular')
-        elif setting == '4':
-            self.get('imdbList&listType=theater')
-        elif setting == '5':
-            self.get('imdbList&listType=added')
-        else:
-            self.get('imdbList&listType=featured')
-
     def search(self):
-
         navigator.navigator().addDirectoryItem(32603, 'movieSearchnew', 'search.png', 'DefaultMovies.png')
         try: from sqlite3 import dbapi2 as database
         except: from pysqlite2 import dbapi2 as database
@@ -251,24 +230,6 @@ class movies:
             url = '%s?action=moviePage&url=%s' % (sys.argv[0], urllib.quote_plus(url))
             control.execute('Container.Update(%s)' % url)
 
-    def person(self):
-        try:
-            control.idle()
-
-            t = control.lang(32010).encode('utf-8')
-            k = control.keyboard('', t) ; k.doModal()
-            q = k.getText() if k.isConfirmed() else None
-
-            if (q == None or q == ''): return
-
-            url = self.persons_link + urllib.quote_plus(q)
-            url = '%s?action=moviePersons&url=%s' % (sys.argv[0], urllib.quote_plus(url))
-            control.execute('Container.Update(%s)' % url)
-        except:
-            log_utils.log(sys.exc_info())
-            return
-
-
     def genres(self):
         genres = [
             ('Action', 'action', True),
@@ -294,11 +255,21 @@ class movies:
             ('War', 'war', True),
             ('Western', 'western', True)
         ]
+        params = {
+            'title_type': 'feature,tv_movie,documentary',
+            'num_votes': '100,',
+            'sort': 'moviemeter,asc',
+            'release_date': ',date[0]',
+         }
 
-        for i in genres: self.list.append(
-            {
+        for i in genres:
+            imdb_params = dict(params.items() + [('genres', i[1])])
+            # Convert the dictionary to url parameters, then URL encode
+            params_str = self.imdblists.params_encode(imdb_params)
+            url = 'q=imdb_params&{}'.format(params_str)
+            self.list.append({
                 'name': cleangenre.lang(i[0], self.lang),
-                'url': self.genre_link % i[1] if i[2] else self.keyword_link % i[1],
+                'url': url,
                 'image': 'genres.png',
                 'action': 'movies'
             })
@@ -306,71 +277,48 @@ class movies:
         self.addDirectory(self.list)
         return self.list
 
-
-    def languages(self):
-        languages = [
-            ('Arabic', 'ar'),
-            ('Bosnian', 'bs'),
-            ('Bulgarian', 'bg'),
-            ('Chinese', 'zh'),
-            ('Croatian', 'hr'),
-            ('Dutch', 'nl'),
-            ('English', 'en'),
-            ('Finnish', 'fi'),
-            ('French', 'fr'),
-            ('German', 'de'),
-            ('Greek', 'el'),
-            ('Hebrew', 'he'),
-            ('Hindi ', 'hi'),
-            ('Hungarian', 'hu'),
-            ('Icelandic', 'is'),
-            ('Italian', 'it'),
-            ('Japanese', 'ja'),
-            ('Korean', 'ko'),
-            ('Macedonian', 'mk'),
-            ('Norwegian', 'no'),
-            ('Persian', 'fa'),
-            ('Polish', 'pl'),
-            ('Portuguese', 'pt'),
-            ('Punjabi', 'pa'),
-            ('Romanian', 'ro'),
-            ('Russian', 'ru'),
-            ('Serbian', 'sr'),
-            ('Slovenian', 'sl'),
-            ('Spanish', 'es'),
-            ('Swedish', 'sv'),
-            ('Turkish', 'tr'),
-            ('Ukrainian', 'uk')
-        ]
-
-        for i in languages: self.list.append({'name': str(i[0]), 'url': self.language_link % i[1], 'image': 'languages.png', 'action': 'movies'})
-        self.addDirectory(self.list)
-        return self.list
-
-
     def certifications(self):
-        certificates = ['G', 'PG', 'PG-13', 'R', 'NC-17']
-
-        for i in certificates: self.list.append({'name': str(i), 'url': self.certification_link % str(i).replace('-', '_').lower(), 'image': 'certificates.png', 'action': 'movies'})
+        certificates = ['TV-G', 'TV-PG', 'TV-14', 'TV-MA']
+        params = {
+            'title_type': 'tv_series,mini_series',
+            'num_votes': '100,',
+            'sort': 'moviemeter,asc',
+            'release_date': ',date[0]',
+            'language': 'en',
+         }
+        for i in genres:
+            imdb_params = dict(params.items() + [('certificates', 'us:'+i)])
+            # Convert the dictionary to url parameters, then URL encode
+            params_str = self.imdblists.params_encode(imdb_params)
+            url = 'q=imdb_params&{}'.format(params_str)
+            self.list.append({
+                'name': str(i),
+                'url': url,
+                'image': 'certificates.png',
+                'action': 'movies'
+            })
         self.addDirectory(self.list)
         return self.list
-
 
     def years(self):
+        """
+        Fetch list of movies by release year
+        """
         year = (self.datetime.strftime('%Y'))
+        params = {
+            'title_type': 'feature,tv_movie',
+            'num_votes': '100,',
+            'production_status': 'released',
+            'sort': 'moviemeter,asc'
+         }
 
-        for i in range(int(year)-0, 1900, -1): self.list.append({'name': str(i), 'url': self.year_link % (str(i), str(i)), 'image': 'years.png', 'action': 'movies'})
-        self.addDirectory(self.list)
-        return self.list
-
-
-    def persons(self, url):
-        if url == None:
-            self.list = cache.get(self.imdb_person_list, 24, self.personlist_link)
-        else:
-            self.list = cache.get(self.imdb_person_list, 1, url)
-
-        for i in range(0, len(self.list)): self.list[i].update({'action': 'movies'})
+        for i in range(int(year)-0, 1900, -1):
+            imdb_params = dict(params.items() + [('year', '{y},{y}'.format(y=str(i)))])
+            # Convert the dictionary to url parameters, then URL encode
+            params_str = self.imdblists.params_encode(imdb_params)
+            params_enc = urllib.quote(params_str)
+            url = 'imdb_params={}'.format(params_enc)
+            self.list.append({'name': str(i), 'url': url, 'image': 'years.png', 'action': 'movies'})
         self.addDirectory(self.list)
         return self.list
 
@@ -509,7 +457,6 @@ class movies:
 
         return self.list
 
-
     def trakt_user_list(self, url, user):
         try:
             items = trakt.getTraktAsJson(url)
@@ -532,38 +479,6 @@ class movies:
                 pass
 
         self.list = sorted(self.list, key=lambda k: utils.title_key(k['name']))
-        return self.list
-
-
-    def imdb_person_list(self, url):
-        try:
-            result = client.request(url)
-            items = client.parseDOM(result, 'tr', attrs = {'class': '.+? detailed'})
-        except:
-            return
-
-        for item in items:
-            try:
-                name = client.parseDOM(item, 'a', ret='title')[0]
-                name = client.replaceHTMLCodes(name)
-                name = name.encode('utf-8')
-
-                url = client.parseDOM(item, 'a', ret='href')[0]
-                url = re.findall('(nm\d*)', url, re.I)[0]
-                url = self.person_link % url
-                url = client.replaceHTMLCodes(url)
-                url = url.encode('utf-8')
-
-                image = client.parseDOM(item, 'img', ret='src')[0]
-                if not ('._SX' in image or '._SY' in image): raise Exception()
-                image = re.sub('(?:_SX|_SY|_UX|_UY|_CR|_AL)(?:\d+|_).+?\.', '_SX500.', image)
-                image = client.replaceHTMLCodes(image)
-                image = image.encode('utf-8')
-
-                self.list.append({'name': name, 'url': url, 'image': image})
-            except:
-                pass
-
         return self.list
 
 
@@ -879,7 +794,7 @@ class movies:
                 pass
 
         # Add the next button for pagination
-        if 'q' in self.params.keys() and len(p_items) == MAX_RESULTS_LENGTH:
+        if ('q' in self.params.keys()) and len(p_items) == MAX_RESULTS_LENGTH:
             # IMDB pagination
             next_page = int(self.params.get('page', '1')) + 1
             params = self.params
@@ -891,6 +806,19 @@ class movies:
             item.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'banner': icon})
             if not addonFanart == None: item.setProperty('Fanart_Image', addonFanart)
             control.addItem(handle=syshandle, url=url, listitem=item, isFolder=True)
+        elif 'imdb' in self.url:
+            # Legacy imdb
+            next_page = int(self.params.get('page', '1')) + 1
+            dec_url = urllib.unquote(self.url).decode('utf8')
+            url = "{}&page={}".format(self.url, next_page)
+            enc_url = urllib.quote(url)
+            url = '{}?action={}&url={}'.format(sysaddon, action, enc_url)
+            icon = control.addonNext()
+            item = control.item(label=nextMenu)
+            item.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'banner': icon})
+            if not addonFanart == None: item.setProperty('Fanart_Image', addonFanart)
+            control.addItem(handle=syshandle, url=url, listitem=item, isFolder=True)
+
         else:
             try:
                 url = items[0]['next']
