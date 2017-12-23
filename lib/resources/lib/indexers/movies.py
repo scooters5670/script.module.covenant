@@ -316,8 +316,7 @@ class movies:
             imdb_params = dict(params.items() + [('year', '{y},{y}'.format(y=str(i)))])
             # Convert the dictionary to url parameters, then URL encode
             params_str = self.imdblists.params_encode(imdb_params)
-            params_enc = urllib.quote(params_str)
-            url = 'imdb_params={}'.format(params_enc)
+            url = 'q=imdb_params&{}'.format(params_str)
             self.list.append({'name': str(i), 'url': url, 'image': 'years.png', 'action': 'movies'})
         self.addDirectory(self.list)
         return self.list
