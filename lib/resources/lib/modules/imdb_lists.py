@@ -152,7 +152,10 @@ class IMDBLists(object):
         for li in soup.findAll("div", {"class": "lister-item"}):
             title = li.find("h3", {"class": "lister-item-header"}).find('a').getText()
             year_raw = li.find("span", {"class": "lister-item-year"}).getText()
-            year = int(re.search('(\d+)', year_raw).group(0))
+            try:
+                year = int(re.search('(\d+)', year_raw).group(0))
+            except:
+                year = 'TBD'
             try:
                 rating = li.find("div", {"class": "ratings-imdb-rating"}).find("strong").get_text()
             except:
