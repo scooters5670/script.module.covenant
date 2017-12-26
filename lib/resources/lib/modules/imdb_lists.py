@@ -175,14 +175,14 @@ class IMDBLists(object):
                 })
         return results_list
 
-    def get_user_list_contents(self, list_id):
+    def get_user_list_contents(self, list_id, title_type=None):
         """
         Get the contents of the user list given by list_id
         """
         url = self.build_user_list_url(list_id)
         return self.get_imdb_url_contents(url)
 
-    def get_imdb_list_contents(self, list_type, hidecinema=False):
+    def get_imdb_list_contents(self, list_type, hidecinema=False, title_type=None):
         """
         Get the contents of the imdb list by type
         """
