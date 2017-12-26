@@ -115,18 +115,18 @@ class movies:
                                             IMDB_USER_LIST_CACHE_TIMEOUT, list_id)
                 else:
                     self.list = cache.get(self.imdblists.get_user_lists,
-                                            IMDB_USER_LIST_CACHE_TIMEOUT)
+                                            IMDB_USER_LIST_CACHE_TIMEOUT, 'movie')
 
             elif self.params.get('q') == 'imdbList':
                 # Default to "featured" if listType isnt defined
                 list_type = self.params['listType']
                 self.list = cache.get(self.imdblists.get_imdb_list_contents,
                                     IMDB_LIST_CACHE_TIMEOUT_LONG,
-                                    list_type, self.hidecinema)
+                                    list_type, self.hidecinema, 'movie')
             elif self.params.get('q') == 'imdb_params':
                 imdb_url = self.imdblists.build_imdb_search_url(self.params)
                 self.list = cache.get(self.imdblists.get_imdb_url_contents,
-                                    IMDB_LIST_CACHE_TIMEOUT_LONG, imdb_url)
+                                    IMDB_LIST_CACHE_TIMEOUT_LONG, imdb_url, 'movie')
             # Support for legacy imdb
             else:
                 decoded_url = urllib.unquote(url).decode('utf8')
