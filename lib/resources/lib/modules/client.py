@@ -18,35 +18,16 @@
 '''
 
 
-import re,sys,cookielib,urllib,urllib2,urlparse,gzip,StringIO,HTMLParser,time,random,base64
+import re,sys,cookielib,urllib,urllib2,urlparse,gzip,StringIO,HTMLParser,time,random,base64,xbmc
 
-
+from resources.lib.modules import cache
 from resources.lib.modules import workers
 from resources.lib.modules import dom_parser
-from resources.lib.modules import utils
 from resources.lib.modules import log_utils
+from resources.lib.modules import utils
 
-try:
-    from resources.lib.modules import cache
-    LOCAL_RUN = False
-except:
-    LOCAL_RUN = True
 
-def request(url,
-            close=True,
-            redirect=True,
-            error=False,
-            proxy=None,
-            post=None,
-            headers=None,
-            mobile=False,
-            XHR=False,
-            limit=None,
-            referer=None,
-            cookie=None,
-            compression=True,
-            output='',
-            timeout='30'):
+def request(url, close=True, redirect=True, error=False, proxy=None, post=None, headers=None, mobile=False, XHR=False, limit=None, referer=None, cookie=None, compression=True, output='', timeout='30'):
     try:
         if not url:
             return
@@ -57,6 +38,7 @@ def request(url,
             handlers += [urllib2.ProxyHandler({'http':'%s' % (proxy)}), urllib2.HTTPHandler]
             opener = urllib2.build_opener(*handlers)
             opener = urllib2.install_opener(opener)
+
 
         if output == 'cookie' or output == 'extended' or not close == True:
             cookies = cookielib.LWPCookieJar()
@@ -76,35 +58,36 @@ def request(url,
                 pass
 
         if url.startswith('//'): url = 'http:' + url
-        _headers = {}
+
+        _headers ={}
         try: _headers.update(headers)
         except: pass
-
-        if 'User-Agent' in _headers.keys():
+        if 'User-Agent' in _headers:
             pass
         elif not mobile == True:
-            if LOCAL_RUN:
-                _headers['User-Agent'] = agent()
-            else:
-                _headers['User-Agent'] = cache.get(randomagent, 1)
+            #headers['User-Agent'] = agent()
+            _headers['User-Agent'] = cache.get(randomagent, 1)
         else:
             _headers['User-Agent'] = 'Apple-iPhone/701.341'
-        if 'Referer' not in _headers.keys() and referer is not None:
+        if 'Referer' in _headers:
+            pass
+        elif referer is not None:
             _headers['Referer'] = referer
-        if not 'Accept-Language' in _headers.keys():
+        if not 'Accept-Language' in _headers:
             _headers['Accept-Language'] = 'en-US'
-        if 'X-Requested-With' in _headers.keys():
+        if 'X-Requested-With' in _headers:
             pass
         elif XHR == True:
             _headers['X-Requested-With'] = 'XMLHttpRequest'
-        if 'Cookie' in _headers.keys():
+        if 'Cookie' in _headers:
             pass
         elif not cookie == None:
             _headers['Cookie'] = cookie
-        if 'Accept-Encoding' in _headers.keys():
+        if 'Accept-Encoding' in _headers:
             pass
         elif compression and limit is None:
             _headers['Accept-Encoding'] = 'gzip'
+
 
         if redirect == False:
 
@@ -156,13 +139,12 @@ def request(url,
                 if 'cf-browser-verification' in cf_result:
 
                     netloc = '%s://%s' % (urlparse.urlparse(url).scheme, urlparse.urlparse(url).netloc)
-
+                    
                     if not netloc.endswith('/'): netloc += '/'
 
                     ua = _headers['User-Agent']
 
-                    #cf = cache.get(cfcookie().get, 168, netloc, ua, timeout)
-                    cf = cfcookie().get()
+                    cf = cache.get(cfcookie().get, 168, netloc, ua, timeout)
 
                     _headers['Cookie'] = cf
 
@@ -209,7 +191,7 @@ def request(url,
             except: content = '0'
             response.close()
             return content
-
+        
         if limit == '0':
             result = response.read(224 * 1024)
         elif not limit == None:
@@ -248,8 +230,7 @@ def request(url,
         if 'Blazingfast.io' in result and 'xhr.open' in result:
             netloc = '%s://%s' % (urlparse.urlparse(url).scheme, urlparse.urlparse(url).netloc)
             ua = _headers['User-Agent']
-            #_headers['Cookie'] = cache.get(bfcookie().get, 168, netloc, ua, timeout)
-            _headers['Cookie'] = bfcookie().get()
+            _headers['Cookie'] = cache.get(bfcookie().get, 168, netloc, ua, timeout)
 
             result = _basic_request(url, headers=_headers, post=post, timeout=timeout, limit=limit)
 
@@ -528,12 +509,11 @@ class sucuri:
 
 def _get_keyboard( default="", heading="", hidden=False ):
     """ shows a keyboard and returns a value """
-    import xbmc
     keyboard = xbmc.Keyboard( default, heading, hidden )
     keyboard.doModal()
     if ( keyboard.isConfirmed() ):
         return unicode( keyboard.getText(), "utf-8" )
     return default
 
-def removeNonAscii(s):
+def removeNonAscii(s): 
     return "".join(i for i in s if ord(i)<128)
