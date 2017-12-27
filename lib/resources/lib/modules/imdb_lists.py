@@ -140,7 +140,7 @@ class IMDBLists(object):
         p = dict(default_params.items() + params.items())
         return "{}?{}".format(self.search_url, self.params_encode(p))
 
-    def get_imdb_url_contents(self, url):
+    def get_imdb_url_contents(self, url, *args):
         """
         Retrieve the list of shows for the given url
         """
@@ -175,7 +175,7 @@ class IMDBLists(object):
                 })
         return results_list
 
-    def get_user_list_contents(self, list_id, title_type=None):
+    def get_user_list_contents(self, list_id, *args):
         """
         Get the contents of the user list given by list_id
         """
